@@ -9,6 +9,46 @@ export function download(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+type SavePicker = (opts: {
+  suggestedName?: string;
+  startIn?: string;
+  id?: string;
+  types?: { description: string; accept: Record<string, string[]> }[];
+}) => Promise<{ createWritable: () => Promise<{ write: (b: Blob) => Promise<void>; close: () => Promise<void> }> }>;
+
+/**
+ * Save with a native "Save as" dialog that starts in Downloads (Chromium:
+ * File System Access API). The `id` makes the browser remember the last folder
+ * used. Browsers without the API fall back to a normal download, which goes
+ * to the browser's download folder (Downloads by default).
+ */
+export async function saveAs(
+  blob: Blob,
+  suggestedName: string,
+  type: { description: string; mime: string; ext: string },
+): Promise<'saved' | 'downloaded' | 'cancelled'> {
+  const picker = (window as unknown as { showSaveFilePicker?: SavePicker }).showSaveFilePicker;
+  if (!picker) {
+    download(blob, suggestedName);
+    return 'downloaded';
+  }
+  try {
+    const handle = await picker({
+      suggestedName,
+      startIn: 'downloads',
+      id: 'tuningtracker-audio',
+      types: [{ description: type.description, accept: { [type.mime]: [type.ext] } }],
+    });
+    const w = await handle.createWritable();
+    await w.write(blob);
+    await w.close();
+    return 'saved';
+  } catch (e) {
+    if ((e as DOMException).name === 'AbortError') return 'cancelled';
+    throw e;
+  }
+}
+
 export function framesCsv(r: AnalysisResult): string {
   const { t, f0Raw, f0, clarity, rmsDb, voiced } = r.frames;
   const lines = ['t_s,f0_raw_hz,f0_hz,clarity,rms_db,voiced'];

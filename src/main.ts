@@ -11,7 +11,7 @@ import { ScatterPlot } from './ui/scatter';
 import { NoteTable } from './ui/table';
 import { LiveView } from './ui/live';
 import { RANGE_PRESETS, RANGE_MARGIN_SEMITONES } from './ui/presets';
-import { download, framesCsv, notesCsv, sessionJson, wavBlob } from './ui/exports';
+import { download, framesCsv, notesCsv, saveAs, sessionJson, wavBlob } from './ui/exports';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -112,6 +112,7 @@ function showResult(r: AnalysisResult) {
   setStatus('Done.');
   $<HTMLButtonElement>('rerun').disabled = false;
   $<HTMLButtonElement>('regate').disabled = false;
+  $<HTMLButtonElement>('saveAudio').disabled = false;
 }
 
 function select(idx: number | null) {
@@ -227,7 +228,19 @@ const base = () => (audio?.name ?? 'session').replace(/\.[^.]+$/, '');
 $('dlNotes').onclick = () => result && download(new Blob([notesCsv(result)], { type: 'text/csv' }), `${base()}-notes.csv`);
 $('dlFrames').onclick = () => result && download(new Blob([framesCsv(result)], { type: 'text/csv' }), `${base()}-frames.csv`);
 $('dlJson').onclick = () => result && download(new Blob([sessionJson(result, { source: audio?.name, low: $<HTMLInputElement>('low').value, high: $<HTMLInputElement>('high').value, userAgent: navigator.userAgent })], { type: 'application/json' }), `${base()}.json`);
-$('dlWav').onclick = () => audio && download(wavBlob(audio.samples, audio.sampleRate), `${base()}.wav`);
+async function saveAudio() {
+  if (!audio) return;
+  try {
+    const r = await saveAs(wavBlob(audio.samples, audio.sampleRate), `${base()}.wav`,
+      { description: 'WAV audio', mime: 'audio/wav', ext: '.wav' });
+    if (r === 'saved') setStatus(`Saved ${base()}.wav.`);
+    else if (r === 'downloaded') setStatus(`Downloaded ${base()}.wav to your browser's download folder.`);
+  } catch (e) {
+    setStatus(`Save failed: ${(e as Error).message}`);
+  }
+}
+$('dlWav').onclick = saveAudio;
+$('saveAudio').onclick = saveAudio;
 
 // ---------- helpers ----------
 function setStatus(s: string) { statusEl.textContent = s; }

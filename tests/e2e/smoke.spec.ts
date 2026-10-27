@@ -51,6 +51,26 @@ test('records from the (fake) microphone and analyses', async ({ page }) => {
   await expect(page.locator('#status')).toHaveText(/Done/, { timeout: 30_000 });
   const notes = await readTable(page);
   expect(notes.length).toBeGreaterThanOrEqual(3);
+
+  // Save audio: headless Chromium has no native dialog, so stub the picker
+  // and check a WAV is written through it.
+  await page.evaluate(() => {
+    const w = window as unknown as Record<string, unknown>;
+    w.__saved = null;
+    w.showSaveFilePicker = async (opts: { suggestedName: string; startIn: string }) => ({
+      createWritable: async () => ({
+        write: async (b: Blob) => { w.__saved = { name: opts.suggestedName, startIn: opts.startIn, size: b.size, type: b.type }; },
+        close: async () => {},
+      }),
+    });
+  });
+  await expect(page.locator('#saveAudio')).toBeEnabled();
+  await page.click('#saveAudio');
+  await expect(page.locator('#status')).toHaveText(/Saved recording-.*\.wav/);
+  const saved = await page.evaluate(() => (window as unknown as { __saved: { name: string; startIn: string; size: number; type: string } }).__saved);
+  expect(saved.startIn).toBe('downloads');
+  expect(saved.type).toBe('audio/wav');
+  expect(saved.size).toBeGreaterThan(100_000);
   await page.screenshot({ path: 'test-results/record.png', fullPage: true });
   expect(errors).toEqual([]);
 });

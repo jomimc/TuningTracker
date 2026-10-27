@@ -18,6 +18,7 @@
           <label class="file">Load audio file <input type="file" id="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac" /></label>
           <button id="rec">● Record</button>
           <button id="stop" disabled>■ Stop &amp; analyse</button>
+          <button id="saveAudio" disabled title="Save the current audio as a WAV file">💾 Save audio…</button>
           <span id="recinfo" class="muted"></span>
         </div>
         <div id="liveWrap" hidden>
@@ -71,7 +72,7 @@
           <button id="dlNotes">Notes CSV</button>
           <button id="dlFrames">Frames CSV</button>
           <button id="dlJson">Session JSON</button>
-          <button id="dlWav">WAV</button>
+          <button id="dlWav">Save audio…</button>
         </div>
       </section>
     </main>
