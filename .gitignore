@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vite/
+*.log
+.DS_Store
+test-results/
+playwright-report/
+# large audio stays out; short fixture clips under tests/fixtures are allowed
+*.m4a
