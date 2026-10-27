@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TuningTracker</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>TuningTracker</h1>
+      <span class="sub">pitch and level measurement for wind instruments</span>
+    </header>
+    <main>
+      <section id="source" class="card">
+        <h2>1. Source</h2>
+        <div class="row">
+          <label class="file">Load audio file <input type="file" id="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac" /></label>
+          <button id="rec">● Record</button>
+          <button id="stop" disabled>■ Stop &amp; analyse</button>
+          <span id="recinfo" class="muted"></span>
+        </div>
+        <div id="liveWrap" hidden>
+          <div id="liveReadout" class="readout">—</div>
+          <canvas id="live"></canvas>
+          <div class="muted">Live tracker output. Green ±5 c, pink ±15 c, red beyond. Level in dBFS below.</div>
+        </div>
+        <div id="status" class="muted"></div>
+      </section>
+
+      <section id="params" class="card">
+        <h2>2. Parameters <button id="toggleParams" class="mini">hide</button></h2>
+        <div id="paramGrid" class="grid">
+          <label>Range preset
+            <select id="preset"></select>
+          </label>
+          <label>Low note <input id="low" value="F2" size="5" /> <button id="setLow" class="mini" title="Play the note for 2 s">by playing</button></label>
+          <label>High note <input id="high" value="F6" size="5" /> <button id="setHigh" class="mini" title="Play the note for 2 s">by playing</button></label>
+          <label>A4 (Hz) <input id="a4" type="number" value="440" step="0.1" /></label>
+          <label>Tracker
+            <select id="tracker"><option value="mpm">MPM (McLeod)</option><option value="yin">YIN</option></select>
+          </label>
+          <label>Frame size <select id="frameSize"><option>1024</option><option selected>2048</option><option>4096</option></select></label>
+          <label>Hop <select id="hop"><option>128</option><option selected>256</option><option>512</option></select></label>
+          <label>Min clarity <input id="clarityMin" type="number" value="0.9" step="0.01" min="0" max="1" /></label>
+          <label>Noise floor (dBFS) <input id="noiseFloorDb" type="number" value="-60" step="1" /></label>
+          <label>Median filter (frames) <input id="medianFrames" type="number" value="5" step="2" min="1" /></label>
+          <label>Max gap (s) <input id="maxGapS" type="number" value="0.05" step="0.01" min="0" /></label>
+          <label>Min note (s) <input id="minDurS" type="number" value="0.3" step="0.05" min="0" /></label>
+          <label>Jump split (cents) <input id="jumpCents" type="number" value="50" step="5" min="5" /></label>
+          <label>Onset discard (s) <input id="onsetDiscardS" type="number" value="0.1" step="0.05" min="0" /></label>
+          <label>Reference level (dBFS) <input id="refDb" type="number" step="0.5" placeholder="none" /></label>
+          <label>Bands (cents) ±<input id="green" type="number" value="5" step="1" size="3" /> / ±<input id="amber" type="number" value="10" step="1" size="3" /></label>
+        </div>
+        <div class="row">
+          <button id="rerun" disabled>Re-run on current audio</button>
+          <button id="regate" disabled title="Re-apply gates, segmentation and statistics without re-tracking">Re-apply gates only</button>
+          <span class="muted">Changing tracker, frame, hop or range needs a full re-run.</span>
+        </div>
+      </section>
+
+      <section id="results" class="card" hidden>
+        <h2>3. Results <span id="summary" class="muted"></span></h2>
+        <div id="pitchPlot"></div>
+        <div id="levelPlot"></div>
+        <h3>Notes</h3>
+        <div id="table" class="tablewrap"></div>
+        <h3>Pitch against level</h3>
+        <div id="scatter"></div>
+        <div class="row">
+          <button id="dlNotes">Notes CSV</button>
+          <button id="dlFrames">Frames CSV</button>
+          <button id="dlJson">Session JSON</button>
+          <button id="dlWav">WAV</button>
+        </div>
+      </section>
+    </main>
+    <footer class="muted">All analysis runs in your browser. Nothing is uploaded. <a href="https://github.com/jomimc/TuningTracker">Source</a></footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

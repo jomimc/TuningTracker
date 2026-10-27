@@ -7,3 +7,6 @@ test-results/
 playwright-report/
 # large audio stays out; short fixture clips under tests/fixtures are allowed
 *.m4a
+# full-length reference tables are large; only the 12 s clips are committed
+tests/fixtures/reference/*
+!tests/fixtures/reference/*_12s.json
