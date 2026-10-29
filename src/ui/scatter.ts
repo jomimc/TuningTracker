@@ -4,8 +4,8 @@ import { noteColour } from './pitchPlot';
 
 /**
  * Hand-drawn canvas scatter of cents deviation (from each note's nearest
- * 12-TET pitch) against level in dBFS, one colour per note, with the
- * Theil-Sen fit line per note. Click a legend entry to isolate one note.
+ * 12-TET pitch) against level in dBFS, one colour per note.
+ * Click a legend entry to isolate one note.
  */
 export class ScatterPlot {
   private canvas: HTMLCanvasElement;
@@ -119,15 +119,6 @@ export class ScatterPlot {
     for (const p of pts) {
       ctx.fillStyle = noteColour(p.idx) + 'aa';
       ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), 2.2, 0, 2 * Math.PI); ctx.fill();
-    }
-    // Fit lines.
-    for (const n of notes) {
-      if (!Number.isFinite(n.slopeCentsPerDb)) continue;
-      ctx.strokeStyle = noteColour(n.index); ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(sx(n.minDb), sy(n.slopeCentsPerDb * n.minDb + n.interceptCents));
-      ctx.lineTo(sx(n.maxDb), sy(n.slopeCentsPerDb * n.maxDb + n.interceptCents));
-      ctx.stroke();
     }
   }
 }
