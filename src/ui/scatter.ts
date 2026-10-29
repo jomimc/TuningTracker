@@ -1,6 +1,5 @@
 import type { AnalysisResult } from '../dsp/types';
 import { hzToCents } from '../dsp/cents';
-import { segmentNotes } from '../dsp/segment';
 import { noteColour } from './pitchPlot';
 
 /**
@@ -40,7 +39,7 @@ export class ScatterPlot {
     this.legend.append(all);
     for (const n of this.result.notes) {
       const b = document.createElement('button');
-      b.textContent = `${n.index + 1}: ${n.name}`;
+      b.textContent = this.result.params.mode === 'tune' ? n.name : `${n.index + 1}: ${n.name}`;
       b.style.borderColor = noteColour(n.index);
       b.className = this.selected === n.index ? 'on' : '';
       b.onclick = () => this.select(n.index);
@@ -72,12 +71,11 @@ export class ScatterPlot {
       ctx.fillText('No notes to plot', 20, 30);
       return;
     }
-    const segs = segmentNotes(r.frames, r.params);
     const notes = this.selected === null ? r.notes : r.notes.filter((n) => n.index === this.selected);
     // Gather points.
     const pts: { x: number; y: number; idx: number }[] = [];
     for (const n of notes) {
-      const seg = segs[n.index];
+      const seg = r.noteFrames[n.index];
       if (!seg) continue;
       const base = (n.midi - 69) * 100;
       for (const i of seg) {

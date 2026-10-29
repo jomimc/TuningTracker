@@ -32,6 +32,10 @@
       <section id="params" class="card">
         <h2>2. Parameters <button id="toggleParams" class="mini">hide</button></h2>
         <div id="paramGrid" class="grid">
+          <label title="Notes in order: one row per played note. Tune: all occurrences of each note pooled into one row.">Mode
+            <select id="mode"><option value="sequence">Notes in order</option><option value="tune">Tune (group by note)</option></select>
+          </label>
+          <label title="Notes in order mode: ignore notes after this many">Max notes <input id="maxNotes" type="number" value="50" step="1" min="1" /></label>
           <label>Range preset
             <select id="preset"></select>
           </label>

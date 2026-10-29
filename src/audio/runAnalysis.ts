@@ -16,7 +16,7 @@ export function runAnalysis(
       if (e.data.type === 'progress') { onProgress?.(e.data.frac); return; }
       worker.terminate();
       const frames = e.data.frames;
-      resolve({ frames, notes: notesFromFrames(frames, params), params, durationS: samples.length / sampleRate });
+      resolve({ frames, ...notesFromFrames(frames, params), params, durationS: samples.length / sampleRate });
     };
     const req: WorkerRequest = { samples: samples.slice(), sampleRate, params };
     worker.postMessage(req, [req.samples.buffer]);

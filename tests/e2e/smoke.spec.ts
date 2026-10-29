@@ -87,3 +87,22 @@ test('re-applying gates updates the table without re-tracking', async ({ page })
   await page.click('#regate');
   await expect(page.locator('table.notes tbody tr')).toHaveCount(8);
 });
+
+test('switching modes and limiting the number of notes', async ({ page }) => {
+  await page.goto('/TuningTracker/');
+  await page.selectOption('#preset', 'whistle-d');
+  await page.setInputFiles('#file', WAV);
+  await expect(page.locator('#status')).toHaveText(/Done/, { timeout: 30_000 });
+
+  await page.fill('#maxNotes', '5');
+  await page.locator('#maxNotes').dispatchEvent('change');
+  await expect(page.locator('table.notes tbody tr')).toHaveCount(5);
+  await expect(page.locator('#status')).toHaveText(/3 later notes were ignored/);
+
+  // Every note of the synthetic scale is distinct, so tune mode gives 8 rows of 1 occurrence each.
+  await page.selectOption('#mode', 'tune');
+  await expect(page.locator('table.notes thead')).toContainText('times');
+  await expect(page.locator('table.notes tbody tr')).toHaveCount(8);
+  await expect(page.locator('#summary')).toContainText('8 distinct notes from 8 played');
+  await page.screenshot({ path: 'test-results/tune-mode.png', fullPage: true });
+});

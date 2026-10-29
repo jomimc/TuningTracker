@@ -21,12 +21,15 @@ export class NoteTable {
 
   render(r: AnalysisResult, opts: TableOptions) {
     const hasRef = Number.isFinite(r.params.refDb);
+    const tune = r.params.mode === 'tune';
     const rows = r.notes.map((n) => {
       const band = Math.abs(n.centsDev) <= opts.greenCents ? 'ok' : Math.abs(n.centsDev) <= opts.amberCents ? 'warn' : 'bad';
       const sel = this.selected === n.index ? ' sel' : '';
       return `<tr class="${sel}" data-idx="${n.index}">
         <td><span class="swatch" style="background:${noteColour(n.index)}"></span>${n.index + 1}</td>
-        <td>${f(n.startT, 2)}</td><td>${f(n.endT - n.startT, 2)}</td>
+        ${tune
+          ? `<td>${n.occurrences}</td><td>${f(n.durS, 2)}</td>`
+          : `<td>${f(n.startT, 2)}</td><td>${f(n.endT - n.startT, 2)}</td>`}
         <td><b>${n.name}</b></td>
         <td>${f(n.medianHz, 2)}</td>
         <td class="${band}">${signed(n.centsDev)}</td>
@@ -43,7 +46,9 @@ export class NoteTable {
     }).join('');
     this.el.innerHTML = `<table class="notes">
       <thead><tr>
-        <th>#</th><th>start s</th><th>dur s</th><th>note</th><th>median Hz</th>
+        <th>#</th>${tune
+          ? '<th title="number of separate times the note was played">times</th><th title="total analysed time across all occurrences">total s</th>'
+          : '<th>start s</th><th>dur s</th>'}<th>note</th><th>median Hz</th>
         <th title="median deviation from nearest 12-TET note">cents</th>
         <th title="cents predicted at the reference level from the slope fit">cents @ref</th>
         <th title="median absolute deviation of cents within the note">MAD</th>

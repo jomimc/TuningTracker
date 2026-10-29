@@ -94,16 +94,20 @@ export class PitchPlots {
     ctx.save();
     ctx.font = `${12 * devicePixelRatio}px sans-serif`;
     ctx.textBaseline = 'top';
-    for (const n of this.result.notes) {
-      const x0 = u.valToPos(n.startT, 'x', true);
-      const x1 = u.valToPos(n.endT, 'x', true);
-      const sel = this.selected === null || this.selected === n.index;
-      ctx.fillStyle = noteColour(n.index) + (sel ? '33' : '14');
+    // Shade every played segment in the colour of the row it belongs to. In
+    // tune mode several segments share a row (and a colour).
+    const tune = this.result.params.mode === 'tune';
+    for (const s of this.result.segments) {
+      const n = this.result.notes[s.note];
+      const x0 = u.valToPos(s.startT, 'x', true);
+      const x1 = u.valToPos(s.endT, 'x', true);
+      const sel = this.selected === null || this.selected === s.note;
+      ctx.fillStyle = noteColour(s.note) + (sel ? '33' : '14');
       ctx.fillRect(x0, top, Math.max(1, x1 - x0), height);
       if (!levelPlot && x1 - x0 > 24 * devicePixelRatio) {
         ctx.fillStyle = sel ? '#333' : '#aaa';
         const sign = n.centsDev >= 0 ? '+' : '';
-        ctx.fillText(`${n.name} ${sign}${n.centsDev.toFixed(0)}`, x0 + 3, top + 3);
+        ctx.fillText(tune ? n.name : `${n.name} ${sign}${n.centsDev.toFixed(0)}`, x0 + 3, top + 3);
       }
     }
     ctx.restore();

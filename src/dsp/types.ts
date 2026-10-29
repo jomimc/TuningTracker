@@ -56,9 +56,27 @@ export interface NoteStats {
   corr: number;
   /** Cents deviation predicted at the reference level (NaN if none). */
   centsAtRef: number;
+  /** Number of separate played segments pooled into this row (1 in sequence mode). */
+  occurrences: number;
+  /** Total analysed duration in seconds (sum over occurrences). */
+  durS: number;
+}
+
+/** One played segment on the timeline, and which row of `notes` it belongs to. */
+export interface SegmentSpan {
+  startT: number;
+  endT: number;
+  note: number;
 }
 
 export interface AnalysisParams {
+  /**
+   * 'sequence': each played note is its own row, in order.
+   * 'tune': all occurrences of the same 12-TET note are pooled into one row.
+   */
+  mode: 'sequence' | 'tune';
+  /** Sequence mode: keep at most this many notes (the first ones played). */
+  maxNotes: number;
   /** 'mpm' (McLeod via pitchy) or 'yin'. */
   tracker: 'mpm' | 'yin';
   frameSize: number;
@@ -87,6 +105,8 @@ export interface AnalysisParams {
 }
 
 export const DEFAULT_PARAMS: AnalysisParams = {
+  mode: 'sequence',
+  maxNotes: 50,
   tracker: 'mpm',
   frameSize: 2048,
   hop: 256,
@@ -106,6 +126,12 @@ export const DEFAULT_PARAMS: AnalysisParams = {
 export interface AnalysisResult {
   frames: FrameTable;
   notes: NoteStats[];
+  /** Frame indices belonging to each row of `notes`. */
+  noteFrames: number[][];
+  /** Every played segment on the timeline (more than notes.length in tune mode). */
+  segments: SegmentSpan[];
+  /** Sequence mode: number of notes dropped because of maxNotes. */
+  truncated: number;
   params: AnalysisParams;
   durationS: number;
 }

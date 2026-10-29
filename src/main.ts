@@ -58,6 +58,8 @@ function readParams(): AnalysisParams {
   let medianFrames = Math.round(num('medianFrames', 5));
   if (medianFrames % 2 === 0) medianFrames += 1;
   return {
+    mode: $<HTMLSelectElement>('mode').value as 'sequence' | 'tune',
+    maxNotes: Math.max(1, Math.round(num('maxNotes', 50))),
     tracker: $<HTMLSelectElement>('tracker').value as 'mpm' | 'yin',
     frameSize: num('frameSize', 2048),
     hop: num('hop', 256),
@@ -105,11 +107,16 @@ function showResult(r: AnalysisResult) {
   result = r;
   resultsEl.hidden = false;
   const voiced = Array.from(r.frames.voiced).reduce((s, v) => s + v, 0) / r.frames.voiced.length;
-  $('summary').textContent = `${audio?.name ?? ''} · ${r.durationS.toFixed(1)} s · ${r.frames.sampleRate} Hz · ${r.notes.length} notes · ${(voiced * 100).toFixed(0)}% voiced · ${r.params.tracker.toUpperCase()}`;
+  const count = r.params.mode === 'tune'
+    ? `${r.notes.length} distinct notes from ${r.segments.length} played`
+    : `${r.notes.length} notes`;
+  $('summary').textContent = `${audio?.name ?? ''} · ${r.durationS.toFixed(1)} s · ${r.frames.sampleRate} Hz · ${count} · ${(voiced * 100).toFixed(0)}% voiced · ${r.params.tracker.toUpperCase()}`;
   plots.setResult(r);
   table.render(r, bands());
   scatter.setResult(r);
-  setStatus('Done.');
+  setStatus(r.truncated > 0
+    ? `Done. Showing the first ${r.notes.length} notes; ${r.truncated} later notes were ignored (raise Max notes, or use Tune mode).`
+    : 'Done.');
   $<HTMLButtonElement>('rerun').disabled = false;
   $<HTMLButtonElement>('regate').disabled = false;
   $<HTMLButtonElement>('saveAudio').disabled = false;
@@ -224,6 +231,20 @@ $('setHigh').onclick = () => setNoteByPlaying('high');
 // ---------- rerun / exports ----------
 $('rerun').onclick = analyseCurrent;
 $('regate').onclick = regate;
+// Notes in a tune are short (a jig's are ~0.1-0.2 s), so tune mode needs a
+// shorter minimum note and onset discard. Cuts and taps (< ~0.06 s) still drop out.
+const MODE_DEFAULTS = {
+  sequence: { minDurS: '0.3', onsetDiscardS: '0.1' },
+  tune: { minDurS: '0.08', onsetDiscardS: '0.03' },
+};
+// Mode and note limit only change grouping, so apply them immediately.
+$('mode').onchange = () => {
+  const d = MODE_DEFAULTS[$<HTMLSelectElement>('mode').value as 'sequence' | 'tune'];
+  $<HTMLInputElement>('minDurS').value = d.minDurS;
+  $<HTMLInputElement>('onsetDiscardS').value = d.onsetDiscardS;
+  if (result) { select(null); regate(); }
+};
+$('maxNotes').onchange = () => { if (result) { select(null); regate(); } };
 const base = () => (audio?.name ?? 'session').replace(/\.[^.]+$/, '');
 $('dlNotes').onclick = () => result && download(new Blob([notesCsv(result)], { type: 'text/csv' }), `${base()}-notes.csv`);
 $('dlFrames').onclick = () => result && download(new Blob([framesCsv(result)], { type: 'text/csv' }), `${base()}-frames.csv`);

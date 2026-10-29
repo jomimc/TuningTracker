@@ -59,7 +59,7 @@ export function framesCsv(r: AnalysisResult): string {
 }
 
 export function notesCsv(r: AnalysisResult): string {
-  const cols = ['index', 'startT', 'endT', 'nFrames', 'name', 'midi', 'medianHz', 'medianCentsAbs', 'centsDev', 'centsAtRef',
+  const cols = ['index', 'startT', 'endT', 'occurrences', 'durS', 'nFrames', 'name', 'midi', 'medianHz', 'medianCentsAbs', 'centsDev', 'centsAtRef',
     'madCents', 'p10', 'p90', 'medianDb', 'minDb', 'maxDb', 'slopeCentsPerDb', 'interceptCents', 'corr'] as const;
   const lines = [cols.join(',')];
   for (const n of r.notes) lines.push(cols.map((c) => (typeof n[c] === 'number' ? num(n[c] as number, 4) : String(n[c]))).join(','));
@@ -75,6 +75,7 @@ export function sessionJson(r: AnalysisResult, meta: Record<string, unknown>): s
     frames: { sampleRate: fr.sampleRate, frameSize: fr.frameSize, hop: fr.hop,
       t: round(fr.t, 4), f0Raw: round(fr.f0Raw, 3), f0: round(fr.f0, 3), clarity: round(fr.clarity, 3), rmsDb: round(fr.rmsDb, 2), voiced: Array.from(fr.voiced) },
     notes: r.notes,
+    segments: r.segments,
   });
 }
 
