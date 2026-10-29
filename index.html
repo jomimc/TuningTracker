@@ -80,6 +80,17 @@
         </div>
       </section>
     </main>
+    <dialog id="saveDialog">
+      <form method="dialog">
+        <h3>Save audio</h3>
+        <label>File name <input id="saveName" size="40" /></label>
+        <p id="saveWhere" class="muted"></p>
+        <div class="row">
+          <button value="cancel" formnovalidate>Cancel</button>
+          <button value="save" id="saveConfirm">Save</button>
+        </div>
+      </form>
+    </dialog>
     <footer class="muted">All analysis runs in your browser. Nothing is uploaded. <a href="https://github.com/jomimc/TuningTracker">Source</a></footer>
     <script type="module" src="/src/main.ts"></script>
   </body>

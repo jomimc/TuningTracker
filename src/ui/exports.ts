@@ -16,21 +16,31 @@ type SavePicker = (opts: {
   types?: { description: string; accept: Record<string, string[]> }[];
 }) => Promise<{ createWritable: () => Promise<{ write: (b: Blob) => Promise<void>; close: () => Promise<void> }> }>;
 
+/** True when the browser can show a native "Save as" folder picker (Chrome, Edge). */
+export function hasNativeSaveDialog(): boolean {
+  return typeof (window as unknown as { showSaveFilePicker?: SavePicker }).showSaveFilePicker === 'function';
+}
+
 /**
- * Save with a native "Save as" dialog that starts in Downloads (Chromium:
- * File System Access API). The `id` makes the browser remember the last folder
- * used. Browsers without the API fall back to a normal download, which goes
- * to the browser's download folder (Downloads by default).
+ * Chrome/Edge: native "Save as" dialog starting in Downloads (the `id` makes
+ * the browser remember the last folder used).
+ * Firefox/Safari: pages cannot open a folder picker, so `askName` shows an
+ * in-page dialog for the file name, then the file is downloaded to the
+ * browser's download folder.
  */
 export async function saveAs(
   blob: Blob,
   suggestedName: string,
   type: { description: string; mime: string; ext: string },
-): Promise<'saved' | 'downloaded' | 'cancelled'> {
+  askName: (suggested: string) => Promise<string | null>,
+): Promise<{ result: 'saved' | 'downloaded' | 'cancelled'; name: string }> {
   const picker = (window as unknown as { showSaveFilePicker?: SavePicker }).showSaveFilePicker;
   if (!picker) {
-    download(blob, suggestedName);
-    return 'downloaded';
+    const name = await askName(suggestedName);
+    if (!name) return { result: 'cancelled', name: suggestedName };
+    const withExt = name.toLowerCase().endsWith(type.ext) ? name : `${name}${type.ext}`;
+    download(blob, withExt);
+    return { result: 'downloaded', name: withExt };
   }
   try {
     const handle = await picker({
@@ -42,9 +52,9 @@ export async function saveAs(
     const w = await handle.createWritable();
     await w.write(blob);
     await w.close();
-    return 'saved';
+    return { result: 'saved', name: (handle as unknown as { name?: string }).name ?? suggestedName };
   } catch (e) {
-    if ((e as DOMException).name === 'AbortError') return 'cancelled';
+    if ((e as DOMException).name === 'AbortError') return { result: 'cancelled', name: suggestedName };
     throw e;
   }
 }

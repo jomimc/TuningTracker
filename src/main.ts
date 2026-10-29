@@ -11,7 +11,7 @@ import { ScatterPlot } from './ui/scatter';
 import { NoteTable } from './ui/table';
 import { LiveView } from './ui/live';
 import { RANGE_PRESETS, RANGE_MARGIN_SEMITONES } from './ui/presets';
-import { download, framesCsv, notesCsv, saveAs, sessionJson, wavBlob } from './ui/exports';
+import { framesCsv, notesCsv, saveAs, sessionJson, wavBlob } from './ui/exports';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -180,7 +180,10 @@ stopBtn.onclick = async () => {
   live.stop();
   const d = await recorder.stop();
   recBtn.classList.remove('on'); recBtn.disabled = false; stopBtn.disabled = true;
-  const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+  // Local time, not UTC, so the name matches the clock.
+  const d0 = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const stamp = `${d0.getFullYear()}-${pad(d0.getMonth() + 1)}-${pad(d0.getDate())}-${pad(d0.getHours())}-${pad(d0.getMinutes())}-${pad(d0.getSeconds())}`;
   audio = { ...d, name: `recording-${stamp}.wav` };
   $('recinfo').textContent = `${(d.samples.length / d.sampleRate).toFixed(1)} s recorded`;
   await analyseCurrent();
@@ -246,16 +249,44 @@ $('mode').onchange = () => {
 };
 $('maxNotes').onchange = () => { if (result) { select(null); regate(); } };
 const base = () => (audio?.name ?? 'session').replace(/\.[^.]+$/, '');
-$('dlNotes').onclick = () => result && download(new Blob([notesCsv(result)], { type: 'text/csv' }), `${base()}-notes.csv`);
-$('dlFrames').onclick = () => result && download(new Blob([framesCsv(result)], { type: 'text/csv' }), `${base()}-frames.csv`);
-$('dlJson').onclick = () => result && download(new Blob([sessionJson(result, { source: audio?.name, low: $<HTMLInputElement>('low').value, high: $<HTMLInputElement>('high').value, userAgent: navigator.userAgent })], { type: 'application/json' }), `${base()}.json`);
+$('dlNotes').onclick = () => result && saveFile(new Blob([notesCsv(result)], { type: 'text/csv' }), `${base()}-notes.csv`, 'csv');
+$('dlFrames').onclick = () => result && saveFile(new Blob([framesCsv(result)], { type: 'text/csv' }), `${base()}-frames.csv`, 'csv');
+$('dlJson').onclick = () => result && saveFile(new Blob([sessionJson(result, { source: audio?.name, low: $<HTMLInputElement>('low').value, high: $<HTMLInputElement>('high').value, userAgent: navigator.userAgent })], { type: 'application/json' }), `${base()}.json`, 'json');
+const isFirefox = /firefox/i.test(navigator.userAgent);
+
+/** In-page "Save audio" dialog for browsers without a native folder picker. */
+function askFileName(suggested: string): Promise<string | null> {
+  const dlg = $<HTMLDialogElement>('saveDialog');
+  const input = $<HTMLInputElement>('saveName');
+  input.value = suggested;
+  $('saveWhere').innerHTML = isFirefox
+    ? 'Firefox saves into your Downloads folder and does not let web pages pick a folder. '
+      + 'To choose the folder each time, turn on <b>Settings › General › Downloads › '
+      + '"Always ask you where to save files"</b>. Firefox will then show its own Save dialog after this one.'
+    : 'Your browser saves into its download folder (normally Downloads).';
+  return new Promise((resolve) => {
+    dlg.onclose = () => resolve(dlg.returnValue === 'save' && input.value.trim() ? input.value.trim() : null);
+    dlg.showModal();
+    input.select();
+  });
+}
+
+const FILE_TYPES = {
+  wav: { description: 'WAV audio', mime: 'audio/wav', ext: '.wav' },
+  csv: { description: 'CSV table', mime: 'text/csv', ext: '.csv' },
+  json: { description: 'JSON session', mime: 'application/json', ext: '.json' },
+};
+
 async function saveAudio() {
   if (!audio) return;
+  await saveFile(wavBlob(audio.samples, audio.sampleRate), `${base()}.wav`, 'wav');
+}
+
+async function saveFile(blob: Blob, suggested: string, kind: keyof typeof FILE_TYPES) {
   try {
-    const r = await saveAs(wavBlob(audio.samples, audio.sampleRate), `${base()}.wav`,
-      { description: 'WAV audio', mime: 'audio/wav', ext: '.wav' });
-    if (r === 'saved') setStatus(`Saved ${base()}.wav.`);
-    else if (r === 'downloaded') setStatus(`Downloaded ${base()}.wav to your browser's download folder.`);
+    const { result, name } = await saveAs(blob, suggested, FILE_TYPES[kind], askFileName);
+    if (result === 'saved') setStatus(`Saved ${name}.`);
+    else if (result === 'downloaded') setStatus(`Saved ${name} to your browser's download folder (normally ~/Downloads), unless you chose another folder in the browser's dialog.`);
   } catch (e) {
     setStatus(`Save failed: ${(e as Error).message}`);
   }

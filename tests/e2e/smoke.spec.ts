@@ -106,3 +106,32 @@ test('switching modes and limiting the number of notes', async ({ page }) => {
   await expect(page.locator('#summary')).toContainText('8 distinct notes from 8 played');
   await page.screenshot({ path: 'test-results/tune-mode.png', fullPage: true });
 });
+
+test('save without a native picker shows a name dialog and downloads with that name', async ({ page }) => {
+  // Behave like Firefox/Safari: no File System Access API.
+  await page.addInitScript(() => { delete (window as unknown as Record<string, unknown>).showSaveFilePicker; });
+  await page.goto('/TuningTracker/');
+  await page.selectOption('#preset', 'whistle-d');
+  await page.setInputFiles('#file', WAV);
+  await expect(page.locator('#status')).toHaveText(/Done/, { timeout: 30_000 });
+
+  await page.click('#saveAudio');
+  await expect(page.locator('#saveDialog')).toBeVisible();
+  await expect(page.locator('#saveName')).toHaveValue('synth_scale.wav');
+
+  // Cancel saves nothing.
+  await page.click('#saveDialog button[value="cancel"]');
+  await expect(page.locator('#saveDialog')).toBeHidden();
+
+  await page.click('#saveAudio');
+  await page.fill('#saveName', 'melodica take 1');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#saveConfirm')]);
+  expect(dl.suggestedFilename()).toBe('melodica take 1.wav');
+  await expect(page.locator('#status')).toHaveText(/Saved melodica take 1\.wav/);
+
+  // Exports use the same dialog.
+  await page.click('#dlNotes');
+  await expect(page.locator('#saveName')).toHaveValue('synth_scale-notes.csv');
+  const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('#saveConfirm')]);
+  expect(dl2.suggestedFilename()).toBe('synth_scale-notes.csv');
+});

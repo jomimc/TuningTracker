@@ -45,6 +45,10 @@ td.bad { color: #c62828; font-weight: 600; }
 .legend button { padding: 1px 7px; font-size: 11px; border-width: 2px; }
 .legend button.on { background: #333; color: #fff; }
 .uplot { margin-bottom: 4px; }
+dialog { border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; max-width: 520px; }
+dialog h3 { margin: 0 0 10px; font-size: 16px; }
+dialog input { font: inherit; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; }
+dialog::backdrop { background: rgba(0, 0, 0, .3); }
 @media (max-width: 700px) {
   .grid { grid-template-columns: 1fr; }
 }
